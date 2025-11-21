@@ -2,7 +2,6 @@
 #define ARR 0
 #define DEP 1
 #include <algorithm>
-#include <stdlib.h>
 #include <iostream>
 #include <ctime>
 #include <cmath>
@@ -10,6 +9,7 @@ float avgArrivalRate=0.f;
 float avgServiceTime=0.f;
 float simClock=0.f;
 float totalTurnAroundTime=0.f;
+int schedulerType;
 class process{
   public:
     static int idCount;
@@ -126,7 +126,8 @@ class readyQueue{
     ~readyQueue() {
       delete head;
     }
-    void enqueue(process* proc){
+
+    void fcfs_enqueue(process* proc){
       size++;
       if (head==nullptr)
         head=proc;
@@ -136,6 +137,64 @@ class readyQueue{
           i=i->next;
         }
         i->next=proc;
+      }
+    }
+  void sjf_enqueue(process* proc)
+    {
+      size++;
+      if (head==nullptr)
+      {
+        head=proc;
+      }
+      else
+      {
+        if (proc->serviceTime < head->serviceTime)
+        {
+          proc->next=head;
+          head=proc;
+        }
+        else
+        {
+          bool inserted=false;
+          process* curr=head->next;
+          process* prev=head;
+          while (curr != nullptr)
+          {
+            if (proc->serviceTime < curr->serviceTime)
+            {
+              inserted = true;
+              prev->next=proc;
+              proc->next=curr;
+              break;
+            }
+            prev=curr;
+            curr=curr->next;
+          }
+          if (!inserted)
+          {
+            prev->next=proc;
+          }
+        }
+
+      }
+
+    }
+  bool enqueue(process* proc)
+    {
+      if (schedulerType== 1)
+      {
+        fcfs_enqueue(proc);
+        return(true);
+      }
+      if (schedulerType == 2)
+      {
+        sjf_enqueue(proc);
+        return(true);
+      }
+      else
+      {
+        printf("Wrong scheduler choice! 1 for FCFS 2 for SJF");
+        return(false);
       }
     }
   process* dequeue() {
@@ -217,15 +276,22 @@ int findRandReadyQueue(int size) {
   return((int)((randomNumber)/chance));
 }
 int main(int argc, char** argv) {
+  if (argc<5)
+  {
+    printf("Error Exactly 4 Arguments Required! [Arrival Rate, Service Time, Queue System, CPU Count, Scheduler Type]");
+    return 1;
+  }
   int queueSystem=2;
   int compProcesses=0;
   float prevTime=0.f;
+
   eventQueue eq= eventQueue();
   avgArrivalRate=atof(argv[1]);
   avgServiceTime=atof(argv[2]);
   queueSystem=atoi(argv[3]);
   simClock=0.f;
   int cpuCount=atoi(argv[4]);
+  schedulerType= atoi(argv[5]);
   bool cpuStatus[cpuCount];
   float cpuBusyTime[cpuCount];
 
@@ -270,7 +336,7 @@ int main(int argc, char** argv) {
     for (int i=0; i<cpuCount; i++) {
       printf("Cpu %d Busy Time:%f Utilization: %f Average Processes in Ready Queue: %f \n",i,cpuBusyTime[i],(cpuBusyTime[i]/simClock),(rQueueSizes[i]/simClock));
     }
-    printf("Average Arrival Rate, QueueSystem, Average TurnAroundTime, Throughput, ");
+    printf("Average Arrival Rate, QueueSystem, Scheduler Type, Average TurnAroundTime, Throughput, ");
     for (int i=0; i<cpuCount; i++) {
       printf("CPU #%d Utilization, ",i);
     }
@@ -278,7 +344,7 @@ int main(int argc, char** argv) {
       printf("RQ #%d Average Processes in Ready Queue, ",i);
     }
     printf("\n");
-    printf("%f, %d, %f, %f",avgArrivalRate, queueSystem,totalTurnAroundTime/static_cast<float>(compProcesses), static_cast<float>(compProcesses)/simClock);
+    printf("%f, %d, %d, %f, %f",avgArrivalRate, queueSystem,schedulerType,totalTurnAroundTime/static_cast<float>(compProcesses), static_cast<float>(compProcesses)/simClock);
     for (int i=0; i<cpuCount; i++) {
       printf(", %f",(cpuBusyTime[i]/simClock));
     }
@@ -317,12 +383,12 @@ int main(int argc, char** argv) {
     for (int i=0; i<cpuCount; i++) {
       printf("Cpu %d Busy Time:%f Utilization: %f Average People in Ready Queue: %f \n",i,cpuBusyTime[i],(cpuBusyTime[i]/simClock),rQueueSize/simClock);
     }
-    printf("Average Arrival Rate, QueueSystem, Average TurnAroundTime, Throughput, ");
+    printf("Average Arrival Rate, QueueSystem, Scheduler Type, Average TurnAroundTime, Throughput, ");
     for (int i=0; i<cpuCount; i++) {
       printf("CPU #%d Utilization, ",i);
     }
     printf("Average Processes in Ready Queue\n");
-    printf("%f, %d, %f, %f", avgArrivalRate,queueSystem,totalTurnAroundTime/static_cast<float>(compProcesses), static_cast<float>(compProcesses)/simClock);
+    printf("%f, %d, %d, %f, %f", avgArrivalRate,queueSystem, schedulerType, totalTurnAroundTime/static_cast<float>(compProcesses), static_cast<float>(compProcesses)/simClock);
     for (int i=0; i<cpuCount; i++) {
       printf(", %f",(cpuBusyTime[i]/simClock));
     }
